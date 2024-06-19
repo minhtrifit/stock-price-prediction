@@ -6,16 +6,16 @@ import matplotlib.pyplot as plt
 
 from sklearn.preprocessing import MinMaxScaler
 
-from tensorflow.keras.models import Sequential
-from tensorflow.keras.layers import Dense, Dropout, LSTM
-from tensorflow.keras.optimizers import Adam
-from tensorflow.keras.metrics import Accuracy
+from module import lstm_model
+from module import rnn_model
+from module import gru_model
 
 currencies = ["BTC-USD", "ETH-USD", "ADA-USD"]
 start = "05/03/2009"
 end = dt.datetime.now().strftime("%d/%m/%Y")
 test_size = 60
 pre_day = 30
+models = ["1: LSTM", "2: RNN", "3: GRU"]
 
 def process_data(df, ma_1, ma_2, ma_3):
     scala_x = MinMaxScaler(feature_range=(0, 1))
@@ -52,42 +52,6 @@ def process_data(df, ma_1, ma_2, ma_3):
 
     return scala_x, scala_y, x_train, x_test, y_train, y_test, cols_x, cols_y
 
-def build_model(currency, x_train, y_train, cols_y):
-    model = Sequential()
-
-    model.add(
-        LSTM(
-            units=60,
-            return_sequences=True,
-            input_shape=(x_train.shape[1], x_train.shape[2]),
-        )
-    )
-    model.add(Dropout(0.2))
-
-    model.add(LSTM(units=60, return_sequences=True))
-    model.add(Dropout(0.2))
-
-    model.add(LSTM(units=60, return_sequences=True))
-    model.add(Dropout(0.2))
-
-    model.add(LSTM(units=60, return_sequences=True))
-    model.add(Dropout(0.2))
-
-    model.add(LSTM(units=60))
-    model.add(Dropout(0.2))
-
-    model.add(Dense(units=len(cols_y)))
-
-    model.compile(optimizer="adam", loss="mean_squared_error")
-    model.fit(
-        x_train, y_train, epochs=120, steps_per_epoch=40
-    )
-    model.save(f"./model/{currency}.h5")
-
-    print("Done Training Model")
-
-    return model
-
 def price_plot(currency, df, predict_prices):
     real_price = df[len(df) - test_size :]["Close"].values.reshape(-1, 1)
     real_price = np.array(real_price)
@@ -116,7 +80,7 @@ def make_prediction(df, model, cols_x, scala_x, scala_y):
 
     print(prediction)
 
-def training_model(currency):
+def training_model(currency, model_type):
     # Load data
     Ticker = yf.Ticker(currency)
     df = Ticker.history(period="max")
@@ -142,11 +106,15 @@ def training_model(currency):
     print(f"Loading {currency} data successfully!")
 
     # Process Data
-    process_result = process_data(df, ma_1, ma_2, ma_3)
-    scala_x, scala_y, x_train, x_test, y_train, y_test, cols_x, cols_y = process_result
+    scala_x, scala_y, x_train, x_test, y_train, y_test, cols_x, cols_y = process_data(df, ma_1, ma_2, ma_3)
 
     # Build Model
-    model = build_model(currency, x_train, y_train, cols_y)
+    if model_type == "LSTM":
+        model = lstm_model.build_model(currency, x_train, y_train, cols_y)
+    if model_type == "RNN":
+        model = rnn_model.build_model(currency, x_train, y_train, cols_y)
+    if model_type == "GRU":
+        model = gru_model.build_model(currency, x_train, y_train, cols_y)
 
     # Testing
     predict_prices = model.predict(x_test)
@@ -158,7 +126,26 @@ def training_model(currency):
     # Make Prediction
     make_prediction(df, model, cols_x, scala_x, scala_y)
 
-for currency in currencies:
-    training_model(currency)
+def choose_model(number):
+    if number == "1":
+        return "LSTM"
+    if number == "2":
+        return "RNN"
+    if number == "3":
+        return "GRU"
+    else:
+        return "none"
 
-print("Train model done!")
+print("Choose traning model:")
+for model in models:
+    print(model)
+print("")
+print("You choose:")
+model_choose = input()
+model_type = choose_model(model_choose)
+
+if model_type != "none":
+    for currency in currencies:
+        training_model(currency, model_type)
+    
+    print("Train model done!")
