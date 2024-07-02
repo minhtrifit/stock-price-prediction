@@ -9,7 +9,7 @@
 
 ## How to run the app
 
-**1. Create folder in root project**
+**1. Create folder in Source Code folder**
 - dataset
 - image
 - model
@@ -21,12 +21,12 @@ pip install dash-html-components
 pip install dash-core-components
 ```
 
-**3. Training model**
+**3. Training model (Source Code folder)**
 ```console
 python crypto.py
 ```
 
-**4. Load model, predict & web app**
+**4. Load model, predict & web app (Source Code folder)**
 ```console
 python crypto_app.py
 ```
